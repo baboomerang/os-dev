@@ -14,7 +14,8 @@ _start:
     mov    si, msg
     call   s_print
 _end:
-    jmp    $
+    hlt
+    jmp    _end
 
 ;------------------------
 ;  s_print(char* string)

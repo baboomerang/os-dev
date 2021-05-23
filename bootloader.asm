@@ -4,6 +4,13 @@ section .text
     global _start
 
 _start:
+    xor    ax, ax
+    mov    ds, ax
+    mov    es, ax
+
+    mov    bp, 0x7c00
+    mov    sp, bp
+
     mov    si, msg
     call   s_print
 _end:
@@ -16,6 +23,7 @@ _end:
 ;  Clobbers: AH, AL
 ;------------------------
 s_print:
+    xor    bx, bx
     mov    ah, 0xe
 .L1:
     lodsb

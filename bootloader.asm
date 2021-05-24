@@ -45,10 +45,10 @@ a20_enable:
     je     .L5
 .fast_a20:
     in     al, 0x92
+    test   al, 00000010b
+    je     .L5
     or     al, 2
     out    0x92, al
-    call   check_a20
-    test   al, 00000001b
     je     .L5
 .no_bios_support:
 .slow_a20:

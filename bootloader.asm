@@ -1,9 +1,12 @@
-[org 0x7c00]
+bits 16
+org 0x7c00
 
 section .text
     global _start
 
 _start:
+    jmp    0000:.start    ;set cs to 0x0000
+.start:
     xor    ax, ax
     mov    ds, ax
     mov    es, ax

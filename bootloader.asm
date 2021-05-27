@@ -1,4 +1,5 @@
-[org 0x7c00]
+bits 16
+org 0x7c00
 
 section .text
     global _start
@@ -21,9 +22,20 @@ _enable_a20:
     call   a20_enable
     call   check_a20
 
+_protected_mode:
+    lgdt   [gdt]
+    mov    eax, cr0
+    or     eax, 0x1
+    mov    cr0, eax
+
+
+
+
 _end:
     hlt
     jmp    _end
+
+
 
 ;-----------------
 ;  a20_enable()

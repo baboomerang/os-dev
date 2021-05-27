@@ -76,6 +76,8 @@ a20_enable:
 ;  Clobbers: ES, DI, SI, AX
 ;--------------------------
 check_a20:
+    pusha
+    pushf
     mov    ax, 0xffff
     mov    es, ax
     mov    di, 0x7e0e
@@ -88,6 +90,8 @@ check_a20:
     mov    si, a20set
 .L2:
     call   s_print
+    popf
+    popa
     ret
 
 ;------------------------

@@ -19,17 +19,24 @@ _start:
     mov    si, msg
     call   s_print
 
-    cli
 _enable_a20:
     call   a20_enable
     call   check_a20
 
 _protected_mode:
-    lgdt   [gdt]
+    xor    ax, ax
+    mov    ds, ax
+    lgdt   [gdt_descriptor]
     mov    eax, cr0
     or     eax, 0x1
     mov    cr0, eax
+    jmp    0x0008:.protected_mode
 
+bits 32
+.protected_mode:
+    mov    ax, 0x8
+    mov    ds, ax
+    mov    ss, ax
 
 
 
@@ -87,8 +94,6 @@ a20_enable:
 ;  Clobbers: ES, DI, SI, AX
 ;--------------------------
 check_a20:
-    pusha
-    pushf
     mov    ax, 0xffff
     mov    es, ax
     mov    di, 0x7e0e
@@ -101,8 +106,6 @@ check_a20:
     mov    si, a20set
 .L2:
     call   s_print
-    popf
-    popa
     ret
 
 ;------------------------
@@ -126,6 +129,29 @@ s_print:
     popf
     popa
     ret
+
+gdt_descriptor:
+    dw gdt_end - gdt - 1    ;size (2 bytes)
+    dd gdt                  ;offset (4 bytes)
+
+gdt:                        ;global-descriptor-table
+gdt_null:                   ;intel reserved, mandatory 16 null bytes (64 bits)
+    dq 0x0
+gdt_code:                   ;code segment
+    dw 0xffff               ;limit address, bit 0 to 15 - 0xffff
+    dw 0x0000               ;base address, bit 0 to 15 - 0x0000
+    db 0x00                 ;base address, bit 16 to 23 - 0x00
+    db 10011010b            ;0x9a - access byte
+    db 11001111b            ;0xcf - 0xc0 (flags) and 0x0f (limit address bit 16-19)
+    db 0x00                 ;base address, bit 24 to 31 - 0x00
+gdt_data:                   ;data segment
+    dw 0xffff               ;limit address, bit 0 to 15 - 0xffff
+    dw 0x0000               ;base address, bit 0 to 15 - 0x0000
+    db 0x00                 ;base address, bit 16 to 23 - 0x00
+    db 10010010b            ;0x92 - access byte
+    db 11001111b            ;0xcf - 0xc0 (flags) and 0x0f (limit address bit 16-19)
+    db 0x00                 ;base address, bit 24 to 31 - 0x00
+gdt_end:
 
 msg     db "Hello World!", 0xa, 0xd, 0x0
 bioserr db "Error, BIOS does not support changing a20 gate", 0xa, 0xd, 0x0

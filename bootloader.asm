@@ -1,7 +1,7 @@
 bits 16
 org 0x7c00
 
-section .text
+section .stage1
     global _start
 
 _start:
@@ -42,6 +42,7 @@ bits 32
     mov    fs, ax
     mov    gs, ax
 
+    ;TODO - Setup protected mode stack
 
 _end:
     hlt
@@ -53,5 +54,6 @@ _end:
 %include "gdt.asm"
 
 msg    db "Hello Real Mode!", 0xa, 0xd, 0x0
+msg32  db "Hello Protected Mode!", 0xa, 0xd, 0x0
 times  510 - ($ - $$) db 0x0
 dw  0xaa55

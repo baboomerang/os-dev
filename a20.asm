@@ -46,14 +46,14 @@ a20_enable:
 ;  Clobbers: ES, DI, SI, AX
 ;--------------------------
 check_a20:
-    push   ax
     mov    ax, 0xffff
     mov    es, ax
     mov    di, 0x7e0e
     cmp    word [es:di], 0xaa55
     xor    ax, ax
-    setne  al
-    pop    ax
+    sete   al
     ret
 
 bioserr db "Error, BIOS does not support changing a20 gate", 0xa, 0xd, 0x0
+a20err  db "Error, A20 line is not enabled!", 0xa, 0xd, 0x0
+a20set  db "Success, A20 line is enabled!", 0xa, 0xd, 0x0

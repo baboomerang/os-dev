@@ -1,10 +1,10 @@
 bits 16
 ;-----------------
-;  a20_enable()
+;  set_a20()
 ;  Returns: void
 ;  Clobbers: void
 ;-----------------
-a20_enable:
+set_a20:
     pusha
     pushf
     mov    ax, 0x2403       ;SYSTEM - later PS/2s - QUERY A20 GATE SUPPORT

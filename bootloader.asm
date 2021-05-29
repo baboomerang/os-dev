@@ -1,12 +1,14 @@
 bits 16
 org 0x7c00
 
-section .stage1
+section .text
     global _start
 
 _start:
-    jmp    0000:.start    ;set cs to 0x0000
+    jmp    0x0000:.start    ;set cs to 0x0000
 .start:
+    cli
+    cld
     xor    ax, ax
     mov    ds, ax
     mov    es, ax
@@ -19,12 +21,11 @@ _start:
     mov    si, msg
     call   s_print
 
-_enable_a20:
-    call   a20_enable
+_a20:
+    call   set_a20
     call   check_a20
 
 _protected_mode:
-    cli
     xor    ax, ax
     mov    ds, ax
     lgdt   [gdt_descriptor]
@@ -41,8 +42,11 @@ bits 32
     mov    es, ax
     mov    fs, ax
     mov    gs, ax
+    mov    ebp, 0x90000
+    mov    esp, ebp
 
-    ;TODO - Setup protected mode stack
+    mov    esi, msg32
+    call   s_print32
 
 _end:
     hlt

@@ -1,5 +1,4 @@
 bits 16
-
 ;------------------------
 ;  s_print(char* string)
 ;  DS:(E)SI - char*
@@ -21,4 +20,3 @@ s_print:
     popf
     popa
     ret
-

@@ -15,7 +15,7 @@ _start:
     mov    ss, ax
     mov    fs, ax
     mov    gs, ax
-    mov    bp, 0x7c00
+    mov    bp, 0x7c00       ;stack: 0x7c00 to 0x500
     mov    sp, bp
 
     mov    si, msg
@@ -24,6 +24,7 @@ _start:
 _a20:
     call   set_a20
     call   check_a20
+
 
 _protected_mode:
     xor    ax, ax
@@ -42,11 +43,24 @@ bits 32
     mov    es, ax
     mov    fs, ax
     mov    gs, ax
-    mov    ebp, 0x90000
+    mov    ebp, 0x9fc00     ;stack: 0x9fc00 to 0x7e00 (assuming 1 boot sector max)
     mov    esp, ebp
 
     mov    esi, msg32
     call   s_print32
+
+_long_mode:
+    lgdt   [gdt_descriptor]
+    jmp    gdt_codeseg:.long_mode
+
+bits 64
+.long_mode:
+    mov    ax, gdt_dataseg
+    mov    ds, ax
+    mov    ss, ax
+    mov    es, ax
+    mov    fs, ax
+    mov    gs, ax
 
 _end:
     hlt

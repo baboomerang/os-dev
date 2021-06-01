@@ -1,5 +1,3 @@
-bits 16
-
 gdt_descriptor:
     dw gdt_end - gdt - 1    ;size (2 bytes)
     dd gdt                  ;offset (4 bytes)

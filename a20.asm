@@ -56,6 +56,8 @@ set_a20:
     mov    al, 0xae              ;0xae - Enable first PS/2 port
     out    0x64, al
     call   wait_keyboard_command
+    mov    al, 0xff              ;Reset the device on the first PS/2 port
+    out    0x64, al
 .end:
     popf
     popa

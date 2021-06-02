@@ -58,6 +58,8 @@ set_a20:
     call   wait_keyboard_command
     mov    al, 0xff              ;Reset the device on the first PS/2 port
     out    0x64, al
+    call   check_a20
+    jc     .fast_a20             ;If the keyboard method failed, use fasta20
 .end:
     popf
     popa
@@ -81,7 +83,7 @@ wait_keyboard_command:
 ;--------------------------
 ;  check_a20()
 ;  Returns: void
-;  Clobbers: DI, AX
+;  Clobbers: ES, DI, AX
 ;--------------------------
 check_a20:
     mov    ax, 0xffff

@@ -1,14 +1,14 @@
 bits 16
 ;---------------------------------------------------------
-;  read_disk(uint8_t index, uint8_t sectors, uint8_t disk)
+;  read_disk(uint8_t disk, uint8_t index, uint8_t sectors)
+;  AL - disk - identifier for boot drive
 ;  BH - index - location of the first sector
 ;  BL - sectors - number of sectors to read
-;  DL - disk - identifier for boot drive
 ;---------------------------------------------------------
 read_disk:
     pusha
     mov    ah, 0x02
-    mov    dl, dl     ;0x80 if harddrive, 0x00 if floppy disk
+    mov    dl, al     ;0x80 if harddrive, 0x00 if floppy disk
     mov    ch, 0      ;cylinder
     mov    dh, 0      ;head
     mov    al, bl     ;number of total sectors to read

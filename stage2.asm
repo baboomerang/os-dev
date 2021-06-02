@@ -1,5 +1,13 @@
 section .stage2 start=0x0200 vstart=0x7e00
 _stage2:
+.a20:
+    call   set_a20
+    call   check_a20
+    jnc    _protected_mode
+    lea    si, [a20err]
+    call   s_print
+    hlt
+
 _protected_mode:
     xor    ax, ax
     mov    ds, ax
@@ -37,4 +45,5 @@ bits 64
     hlt
 
 msg32 db "Hello Protected Mode!", 0x0
+%include "a20.asm"
 %include "gdt.asm"

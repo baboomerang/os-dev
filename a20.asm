@@ -36,30 +36,30 @@ set_a20:
     jmp    .end
 .not_supported:                  ;BIOS is too old, assume ancient (pre-2004 bios)
 .slow_a20:
-    call   wait_keyboard_command ;wait until 8042 controller is ready to recieve data
-    mov    al, 0xad              ;0xad - Disable first PS/2 port
-    out    0x64, al
-    call   wait_keyboard_command
-    mov    al, 0xd0              ;0xd0 - Read Controller Output Port
-    out    0x64, al
-    call   wait_keyboard_data    ;wait until 8042 controller is ready to send data
-    in     al, 0x60              ;read from read/write data port
-    mov    dx, ax                ;backup PS/2 Controller Configuration Byte
-    call   wait_keyboard_command
-    mov    al, 0xd1              ;0xd1 - Write next byte to Controller Output Port
-    out    0x64, al
-    call   wait_keyboard_command
-    mov    ax, dx
-    or     al, 00000010b         ;Set A20 Gate (output)
-    out    0x60, al              ;write to the read/write data port
-    call   wait_keyboard_command
-    mov    al, 0xae              ;0xae - Enable first PS/2 port
-    out    0x64, al
-    call   wait_keyboard_command
-    mov    al, 0xff              ;Reset the device on the first PS/2 port
-    out    0x64, al
-    call   check_a20
-    jc     .fast_a20             ;If the keyboard method failed, use fasta20
+;    call   wait_keyboard_command ;wait until 8042 controller is ready to recieve data
+;    mov    al, 0xad              ;0xad - Disable first PS/2 port
+;    out    0x64, al
+;    call   wait_keyboard_command
+;    mov    al, 0xd0              ;0xd0 - Read Controller Output Port
+;    out    0x64, al
+;    call   wait_keyboard_data    ;wait until 8042 controller is ready to send data
+;    in     al, 0x60              ;read from read/write data port
+;    mov    dx, ax                ;backup PS/2 Controller Configuration Byte
+;    call   wait_keyboard_command
+;    mov    al, 0xd1              ;0xd1 - Write next byte to Controller Output Port
+;    out    0x64, al
+;    call   wait_keyboard_command
+;    mov    ax, dx
+;    or     al, 00000010b         ;Set A20 Gate (output)
+;    out    0x60, al              ;write to the read/write data port
+;    call   wait_keyboard_command
+;    mov    al, 0xae              ;0xae - Enable first PS/2 port
+;    out    0x64, al
+;    call   wait_keyboard_command
+;    mov    al, 0xff              ;Reset the device on the first PS/2 port
+;    out    0x64, al
+;    call   check_a20
+;    jc     .fast_a20             ;If the keyboard method failed, use fasta20
 .end:
     popf
     popa
@@ -70,16 +70,16 @@ set_a20:
 ;  Returns: void
 ;  Clobbers: AL
 ;----------------------------------------------------
-wait_keyboard_data:
-    in     al, 0x64
-    test   al, 00000001b
-    je     wait_keyboard_data
-    ret
-wait_keyboard_command:
-    in     al, 0x64
-    test   al, 00000010b
-    je     wait_keyboard_command
-    ret
+;wait_keyboard_data:
+;    in     al, 0x64
+;    test   al, 00000001b
+;    je     wait_keyboard_data
+;    ret
+;wait_keyboard_command:
+;    in     al, 0x64
+;    test   al, 00000010b
+;    je     wait_keyboard_command
+;    ret
 ;--------------------------
 ;  check_a20()
 ;  Returns: void

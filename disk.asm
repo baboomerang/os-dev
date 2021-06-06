@@ -15,8 +15,6 @@ read_disk:
     mov    cl, bh     ;1st sector is 0x1 (MBR), 2nd sector is 0x2 (stage2), etc...
     int    0x13
     jc     read_err
-    test   ah, ah     ;test if read had any errors
-    jnz    read_err2
     popa
     ret
 
@@ -25,12 +23,4 @@ read_err:
     call   s_print
     hlt
 
-read_err2:
-    mov    si, secterr
-    call   s_print
-    movzx  bx, ah
-    call   r_print
-    hlt
-
 diskerr    db "HALT: Failed to read boot disk", 0x0
-secterr    db "HALT: Failed to read sectors, error status:", 0x0

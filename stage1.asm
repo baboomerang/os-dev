@@ -63,7 +63,6 @@ _end:
 
 drive   db 0x0
 a20err  db "HALT: A20 Line is not enabled!", 0x0
-x64err  db "HALT: Long Mode is not supported!", 0x0
 
 %include "gdt.asm"
 %include "a20.asm"
@@ -73,3 +72,5 @@ x64err  db "HALT: Long Mode is not supported!", 0x0
 
 section .mbr_signature start=0x01fe vstart=0x7dfe
 dw 0xaa55
+
+%include "stage2.asm"

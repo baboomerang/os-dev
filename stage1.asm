@@ -17,7 +17,7 @@ _mbr_start:
     mov    byte [drive], dl
     mov    si, 0x7c00
     mov    di, 0x0600
-    mov    cx, 0x0100
+    mov    cx, 0x0200      ;copy 1024 bytes, shadows stage1 and stage2
     rep    movsw
     jmp    0x0600 + .phase2 - $$
 .phase2:

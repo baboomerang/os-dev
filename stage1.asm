@@ -5,7 +5,6 @@ _mbr_start:
 .start:
     cli
     cld
-    clc
     xor    ax, ax
     mov    ds, ax
     mov    es, ax
@@ -17,10 +16,10 @@ _mbr_start:
     mov    byte [drive], dl
     mov    si, 0x7c00
     mov    di, 0x0600
-    mov    cx, 0x0200      ;copy 1024 bytes, shadows stage1 and stage2
+    mov    cx, 0x0100      ;256 words, 512 bytes
     rep    movsw
-    jmp    0x0600 + .phase2 - $$
-.phase2:
+    jmp    0x0600 + .relocate - $$
+.relocate:
     xor    ah, ah          ;set video mode
     mov    al, 0x03        ;720x400p, 80 columns * 25 rows in 16 bit colors
     int    0x10
@@ -34,10 +33,13 @@ _mbr_start:
 .a20:
     call   set_a20
     call   check_a20
-    jnc    .prepare_pm
-    mov    si, a20err
-    call   s_print
-    hlt
+    jc     _a20err
+.stage2:
+    mov    al, byte [drive]
+    mov    bh, 2           ;start at sector 2
+    mov    bl, 1           ;read only one sector
+    call   read_disk
+    jc     _diskerr
 .prepare_pm:
     xor    ax, ax
     mov    ds, ax
@@ -57,18 +59,31 @@ bits 32
     mov    ebp, 0x9fc00
     mov    esp, ebp
 
-_end:
+
+_a20err:
+    mov    si, a20msg
+    jmp    _print
+_diskerr:
+    mov    si, diskmsg
+_print:
+    mov    ah, 0xe
+.L1:
+    lodsb
+    test   al, al
+    jz     .L2
+    int    0x10
+    jmp    .L1
+.L2:
     hlt
-    jmp    _end
+    jmp    .L2
 
 drive   db 0x0
-a20err  db "HALT: A20 Line is not enabled!", 0x0
+a20msg  db "HALT: A20 Line is not enabled", 0x0
+diskmsg db "HALT: Failed to read boot disk", 0x0
 
 %include "gdt.asm"
 %include "a20.asm"
 %include "disk.asm"
-%include "print.asm"
-%include "long.asm"
 
 section .mbr_signature start=0x01fe vstart=0x7dfe
 dw 0xaa55

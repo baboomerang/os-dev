@@ -1,4 +1,7 @@
 bits 16
+
+; June 9th 2021 - removed this file from stage1 and inlined the s_print function
+
 ;------------------------------
 ;  r_print(uint16_t register)
 ;  Recieves: BX - 16 bit int
@@ -7,12 +10,12 @@ bits 16
 ;------------------------------
 r_print:
     mov    ah, 0xe
-    mov    cl, 4               ;4 nibbles * 4 bits = 16 bit register (word)
+    mov    cl, 4                ;4 nibbles * 4 bits = 16 bit register (word)
 .L1:
-    rol    bx, 4               ;start with the most significant byte in BL
+    rol    bx, 4                ;start with the most significant byte in BL
     movzx  si, bl
-    and    si, 0xf             ;get the lower nibble
-    mov    al, byte [.hex + si];convert int hex to char hex
+    and    si, 0xf              ;get the lower nibble
+    mov    al, byte [.hex + si] ;convert int hex to char hex
     int    0x10
     dec    cl
     jnz    .L1

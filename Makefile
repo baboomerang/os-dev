@@ -2,6 +2,7 @@ DD=dd
 MKFAT=mkfs.fat
 PARTED=parted -s
 NASM=nasm
+QEMU=qemu-system-x86_64
 
 default: mbr
 
@@ -11,5 +12,5 @@ clean:
 mbr: stage1.asm
 	$(NASM) -f bin stage1.asm -o bootloader.bin
 
-test: bootloader.bin
-	qemu-system-x86_64 bootloader.bin
+test: mbr bootloader.bin
+	$(QEMU) bootloader.bin

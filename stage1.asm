@@ -16,6 +16,7 @@ _start:
     rep    movsw
     jmp    0x0000:.relocate
 .relocate:
+    cli
     mov    byte [drive], dl
 .set_video:
     xor    ah, ah          ;set video mode
@@ -28,57 +29,82 @@ _start:
     mov    dh, 0x19        ;0x19 = 25 rows
     mov    dl, 0x50        ;0x50 = 80 columns
     int    0x10
-    mov    cl, 4
-    mov    bx, partition1
-.find_part:
-    cmp    byte [bx], 0x80
-    je     .load_stage2
-    add    bx, 16
-    dec    cl
-    jnz    .find_part
-    jmp    error.part
-.load_stage2:
-    mov    al, byte [drive]
-    mov    bh, 2           ;start at sector 2
-    mov    bl, 1           ;read only one sector
-    call   read_disk
-    jc     error.disk
 .detect_a20:
     call   set_a20
     call   check_a20
     jc     error.a20
+.read_parts:
     sti
-    hlt
-    jmp    0x0000:0x7c00   ;load VBR code from FAT32 partition
+    mov    cl, 4
+    mov    bx, partition1
+.find_active:
+    mov    al, byte [bx]
+    test   al, 0x80
+    je     .found
+    add    bx, 0x10
+    dec    cl
+    jnz    .find_active
+    jmp    error.part
+.found:
+    add    bx, 8           ;bx points to LBA of the first sector of the partition
+    push   bx
+.fast_method:
+    mov    dl, byte [drive]
+    mov    al, 0x41
+    mov    bx, 0x55aa
+    int    0x13
+    jc     .slow_method
+    inc    al
+    mov    si, dap_packet  ;redundant acronym, i know...
+    int    0x13
+    jnc    _end
+.slow_method:
+    pop    bx
+    call   lba_chs
+    mov    bx, 0x7c00
+.retry:
+    mov    ah, 0x2
+    int    0x13
+    jnc    _end
+    xor    ah, ah
+    int    0x13
+    jnz    .retry
+    jmp    error.disk
+_end:
+    jmp    0x0000:0x7c00
+
 
 error:
 .a20:
     mov    si, a20err
-    jmp    .L0
+    jmp    print
 .part:
     mov    si, parterr
-    jmp    .L0
+    jmp    print
 .disk:
     mov    si, diskerr
-.L0:
+
+
+print:
     mov    ah, 0xe
-.L1:
+.loop:
     lodsb
     test   al, al
-    jz     .L2
+    jz     .end
     int    0x10
-    jmp    .L1
-.L2:
-    cli
+    jmp    .loop
+.end:
     hlt
 
 %include "a20.asm"
 %include "disk.asm"
 
 drive   db 0x0
+dap_packet:
+;TODO - Fill DAP Packet contents
 a20err  db "Failed to enable A20 line", 0x0
-parterr db "No active partition found", 0x0
-diskerr db "Failed to read boot disk", 0x0
+parterr db "Invalid partition table", 0x0
+diskerr db "Failed to read disk sectors", 0x0
 
 section .partition_table start=0x1b4 vstart=0x7b4
 volume_uuid times 10 db 0x0

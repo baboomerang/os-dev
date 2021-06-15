@@ -1,7 +1,5 @@
-bits 16
 section .mbr start=0x000 vstart=0x600
 _start:
-    cld
     xor    ax, ax
     mov    ss, ax
     mov    sp, 0x7c00
@@ -16,7 +14,6 @@ _start:
     rep    movsw
     jmp    0x0000:.relocate
 .relocate:
-    cli
     mov    byte [drive], dl
 .set_video:
     xor    ah, ah          ;set video mode
@@ -33,41 +30,45 @@ _start:
     call   set_a20
     call   check_a20
     jc     error.a20
-.read_parts:
-    sti
+.detect_partition:
     mov    cl, 4
     mov    bx, partition1
-.find_active:
-    mov    al, byte [bx]
-    test   al, 0x80
+.retry:
+    cmp    byte [bx], 0x80 ;active flag
     je     .found
     add    bx, 0x10
     dec    cl
-    jnz    .find_active
+    jnz    .retry
     jmp    error.part
 .found:
-    add    bx, 8           ;bx points to LBA of the first sector of the partition
-    push   bx
-.fast_method:
+    mov    si, bx
     mov    dl, byte [drive]
-    mov    al, 0x41
+_read_drive:
+    mov    al, 0x41        ;installation check
     mov    bx, 0x55aa
     int    0x13
-    jc     .slow_method
-    inc    al
-    mov    si, dap_packet  ;redundant acronym, i know...
+    jc     .slow_read
+    inc    al              ;extended read sectors from drive
+    mov    si, dap
+    mov    ebx, dword [si + 8]
+    mov    dword [dap.transfer], 0x7c00
+    mov    dword [dap.startlba], ebx
     int    0x13
     jnc    _end
-.slow_method:
-    pop    bx
-    call   lba_chs
+.slow_read:
+    mov    ch, byte [si + 1] ;cylinder
+    mov    dh, byte [si + 2] ;head
+    mov    cl, byte [si + 3] ;sector
     mov    bx, 0x7c00
+    mov    si, 5           ;retry 5 times
 .retry:
-    mov    ah, 0x2
+    mov    ah, 0x2         ;read sectors from drive
+    mov    al, 1           ;read length of one sector
     int    0x13
     jnc    _end
-    xor    ah, ah
+    xor    ah, ah          ;reset disk system
     int    0x13
+    dec    si
     jnz    .retry
     jmp    error.disk
 _end:
@@ -96,12 +97,17 @@ print:
 .end:
     hlt
 
+
 %include "a20.asm"
-%include "disk.asm"
+
+dap:
+.size     db 0x10 ;size of packet (10h or 18h)
+.reserved db 0x00 ;reserved (0)
+.blocks   dw 0x01 ;number of blocks to transfer (max 007Fh for Phoenix EDD)
+.transfer dd 0x00 ;-> transfer buffer
+.startlba dq 0x00 ;starting absolute block number
 
 drive   db 0x0
-dap_packet:
-;TODO - Fill DAP Packet contents
 a20err  db "Failed to enable A20 line", 0x0
 parterr db "Invalid partition table", 0x0
 diskerr db "Failed to read disk sectors", 0x0

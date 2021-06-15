@@ -1,6 +1,4 @@
-section .stage2 start=0x0200 vstart=0x7e00
-_stage2:
-
+section .stage2 start=0x0000 vstart=0x7c00
     ;TODO - Setup paging
     ;Detect CPUID
     ;Detect Long Mode Support
@@ -12,7 +10,12 @@ _stage2:
 
 .prepare_pm:
     xor    ax, ax
+    xor    di, di
     mov    ds, ax
+    mov    es, ax
+    mov    cx, 1024
+    rep    stosw           ;zero 2048 bytes at es:di for the idt
+    lidt   [idt_descriptor]
     lgdt   [gdt_descriptor]
     mov    eax, cr0
     or     eax, 0x1

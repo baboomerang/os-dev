@@ -1,5 +1,6 @@
 section .mbr start=0x000 vstart=0x600
 _start:
+    cld
     xor    ax, ax
     mov    ss, ax
     mov    sp, 0x7c00
@@ -14,6 +15,7 @@ _start:
     rep    movsw
     jmp    0x0000:.relocate
 .relocate:
+    cli
     mov    byte [drive], dl
 .set_video:
     xor    ah, ah          ;set video mode
@@ -31,6 +33,7 @@ _start:
     call   check_a20
     jc     error.a20
 .detect_partition:
+    sti
     mov    cl, 4
     mov    bx, partition1
 .retry:

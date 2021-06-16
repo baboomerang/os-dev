@@ -44,7 +44,7 @@ _start:
     jnz    .retry
     jmp    error.part
 .found:
-    mov    si, bx
+    mov    di, bx
     mov    dl, byte [drive]
 _read_drive:
     mov    al, 0x41        ;installation check
@@ -53,15 +53,15 @@ _read_drive:
     jc     .slow_read
     inc    al              ;extended read sectors from drive
     mov    si, dap
-    mov    ebx, dword [si + 8]
+    mov    ebx, dword [di + 8]
     mov    dword [dap.transfer], 0x7c00
     mov    dword [dap.startlba], ebx
     int    0x13
     jnc    _end
 .slow_read:
-    mov    ch, byte [si + 1] ;cylinder
-    mov    dh, byte [si + 2] ;head
-    mov    cl, byte [si + 3] ;sector
+    mov    ch, byte [di + 1] ;cylinder
+    mov    dh, byte [di + 2] ;head
+    mov    cl, byte [di + 3] ;sector
     mov    bx, 0x7c00
     mov    si, 5           ;retry 5 times
 .retry:

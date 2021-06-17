@@ -1,3 +1,4 @@
+bits 16
 section .mbr start=0x000 vstart=0x600
 _start:
     cld
@@ -15,7 +16,6 @@ _start:
     rep    movsw
     jmp    0x0000:.relocate
 .relocate:
-    cli
     mov    byte [drive], dl
 .set_video:
     xor    ah, ah          ;set video mode
@@ -23,50 +23,49 @@ _start:
     int    0x10
     mov    ah, 0x7         ;scroll down window
     xor    al, al          ;clear all rows
-    mov    bh, 01001111b
+    mov    bh, 01101111b
     xor    cx, cx          ;ch,cl = row,column of window's upper left corner
     mov    dh, 0x19        ;0x19 = 25 rows
     mov    dl, 0x50        ;0x50 = 80 columns
     int    0x10
 .detect_a20:
+    cli
     call   set_a20
     call   check_a20
     jc     error.a20
 .detect_partition:
     sti
     mov    cl, 4
-    mov    bx, partition1
+    mov    di, partition1
 .retry:
-    cmp    byte [bx], 0x80 ;active flag
+    cmp    byte [di], 0x80 ;active flag
     je     .found
-    add    bx, 0x10
+    add    di, 0x10
     dec    cl
     jnz    .retry
     jmp    error.part
 .found:
-    mov    di, bx
     mov    dl, byte [drive]
 _read_drive:
-    mov    al, 0x41        ;installation check
+    mov    ah, 0x41        ;installation check
     mov    bx, 0x55aa
     int    0x13
-    jc     .slow_read
-    inc    al              ;extended read sectors from drive
+    jc     error.part
+    mov    ah, 0x42        ;extended read sectors from drive
     mov    si, dap
     mov    ebx, dword [di + 8]
-    mov    dword [dap.transfer], 0x7c00
+    mov    dword [dap.transfer], 0x00007c00
     mov    dword [dap.startlba], ebx
     int    0x13
     jnc    _end
 .slow_read:
-    mov    ch, byte [di + 1] ;cylinder
-    mov    dh, byte [di + 2] ;head
-    mov    cl, byte [di + 3] ;sector
+    mov    dh, byte [di + 1] ;head
+    mov    cl, byte [di + 2] ;sector
+    mov    ch, byte [di + 3] ;track - cylinder
     mov    bx, 0x7c00
     mov    si, 5           ;retry 5 times
 .retry:
-    mov    ah, 0x2         ;read sectors from drive
-    mov    al, 1           ;read length of one sector
+    mov    ax, 0x201       ;ah=0x2/al=0x1 - read 1 sector(s) from disk
     int    0x13
     jnc    _end
     xor    ah, ah          ;reset disk system
@@ -116,11 +115,11 @@ parterr db "Invalid partition table", 0x0
 diskerr db "Failed to read disk sectors", 0x0
 
 section .partition_table start=0x1b4 vstart=0x7b4
-volume_uuid times 10 db 0x0
-partition1  times 16 db 0x0
-partition2  times 16 db 0x0
-partition3  times 16 db 0x0
-partition4  times 16 db 0x0
+volume_uuid times 10 db 0x2 ;dummy values so you and others can study the hexdump
+partition1  times 16 db 0x3 ;"
+partition2  times 16 db 0x4 ;"
+partition3  times 16 db 0x5 ;"
+partition4  times 16 db 0x6 ;"
 
 section .mbr_signature start=0x1fe vstart=0x7fe
 dw 0xaa55

@@ -83,9 +83,10 @@ wait_keyboard_command:
 ;--------------------------
 ;  check_a20()
 ;  Returns: void
-;  Clobbers: ES, DI, AX
+;  Clobbers: DI, AX
 ;--------------------------
 check_a20:
+    push   es
     mov    ax, 0xffff
     mov    es, ax
     mov    di, 0x7e0e
@@ -94,4 +95,5 @@ check_a20:
     jne    .L1
     stc
 .L1:
+    pop    es
     ret

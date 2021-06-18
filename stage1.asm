@@ -34,7 +34,6 @@ _start:
     call   check_a20
     jc     error.a20
 .detect_partition:
-    sti
     mov    cl, 4
     mov    di, partition1
 .retry:
@@ -47,10 +46,11 @@ _start:
 .found:
     mov    dl, byte [drive]
 _read_drive:
+    sti
     mov    ah, 0x41        ;installation check
     mov    bx, 0x55aa
     int    0x13
-    jc     error.part
+    jc     .slow_read
     mov    ah, 0x42        ;extended read sectors from drive
     mov    si, dap
     mov    ebx, dword [di + 8]
@@ -101,6 +101,7 @@ print:
 
 
 %include "a20.asm"
+
 
 dap:
 .size     db 0x10 ;size of packet (10h or 18h)

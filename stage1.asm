@@ -12,47 +12,45 @@ _start:
     mov    gs, ax
     mov    si, 0x7c00
     mov    di, 0x600
-    mov    cx, 0x100       ;256 words, 512 bytes
+    mov    cx, 0x100        ;256 words, 512 bytes
     rep    movsw
     jmp    0x0000:.relocate
 .relocate:
     mov    byte [drive], dl
 .set_video:
-    xor    ah, ah          ;set video mode
-    mov    al, 0x3         ;720x400p, 80 columns * 25 rows in 16 bit colors
-    int    0x10
-    mov    ah, 0x7         ;scroll down window
-    xor    al, al          ;clear all rows
+    mov    ax, 0x3          ;ah=0x0/al=0x3 - set video mode to 720x400p
+    int    0x10             ;    - 720x400p, 80 columns * 25 rows in 16 bit colors
+    mov    ah, 0x7          ;ah=0x7 - scroll down window
+    xor    al, al           ;al=0x0 - clear all rows
     mov    bh, 01101111b
-    xor    cx, cx          ;ch,cl = row,column of window's upper left corner
-    mov    dh, 0x19        ;0x19 = 25 rows
-    mov    dl, 0x50        ;0x50 = 80 columns
+    xor    cx, cx           ;ch,cl = row,column of window's upper left corner
+    mov    dx, 0x1950       ;dh,dl = 0x19 (25 rows) 0x50 (80 columns)
     int    0x10
 .detect_a20:
     cli
     call   set_a20
     call   check_a20
     jc     error.a20
-.detect_partition:
+.find_part:
     mov    cl, 4
     mov    di, partition1
-.retry:
-    cmp    byte [di], 0x80 ;active flag
+.parse:
+    cmp    byte [di], 0x80  ;active flag
     je     .found
     add    di, 0x10
     dec    cl
-    jnz    .retry
+    jnz    .parse           ;parse all 4 pt entries in MBR scheme
     jmp    error.part
 .found:
-    mov    dl, byte [drive]
-_read_drive:
     sti
-    mov    ah, 0x41        ;installation check
+    mov    dl, byte [drive]
+.read_disk:
+    mov    ah, 0x41         ;installation check
     mov    bx, 0x55aa
     int    0x13
     jc     .slow_read
-    mov    ah, 0x42        ;extended read sectors from drive
-    mov    si, dap
+    mov    ah, 0x42         ;extended read sectors from drive
+    mov    si, dap          ;disk access packet
     mov    ebx, dword [di + 8]
     mov    dword [dap.transfer], 0x00007c00
     mov    dword [dap.startlba], ebx
@@ -63,15 +61,15 @@ _read_drive:
     mov    cl, byte [di + 2] ;sector
     mov    ch, byte [di + 3] ;track - cylinder
     mov    bx, 0x7c00
-    mov    si, 5           ;retry 5 times
+    mov    si, 255          ;retry 255 times
 .retry:
-    mov    ax, 0x201       ;ah=0x2/al=0x1 - read 1 sector(s) from disk
+    mov    ax, 0x201        ;ah=0x2/al=0x1 - read 1 sector(s) from disk
     int    0x13
     jnc    _end
-    xor    ah, ah          ;reset disk system
+    xor    ah, ah           ;reset disk system
     int    0x13
     dec    si
-    jnz    .retry
+    jnz    .retry           ;try reading disk sector again
     jmp    error.disk
 _end:
     jmp    0x0000:0x7c00

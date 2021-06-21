@@ -72,7 +72,7 @@ _start:
     jnz    .retry           ;try reading disk sector again
     jmp    error.disk
 _end:
-    jmp    0x0000:0x7c00
+    jmp    0x0000:0x7c00    ;Jump to VBR code
 
 
 error:

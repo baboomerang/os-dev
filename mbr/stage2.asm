@@ -1,7 +1,8 @@
 bits 16
 section .vbr start=0x0000 vstart=0x7c00
 _FAT32_BPB:
-    Jump                 db 0x0, 0x0, 0x0
+    jmp    _start
+    nop
     OEMLabel             db "OSDEV123"
     BytesPerSector       dw 0x0
     SectorsPerCluster    db 0x0
@@ -29,13 +30,13 @@ _FAT32_BPB:
     VolumeSerialNumber   db "1234567890"
     SystemIdentifier     db "FAT32   "
 _start:
-.prepare_pm:
+    cli
     xor    ax, ax
     xor    di, di
     mov    ds, ax
     mov    es, ax
     mov    cx, 1024
-    rep    stosw                   ;zero 2048 bytes at es:di for the idt
+    rep    stosw            ;zero 2048 bytes at es:di for the idt
     lidt   [idt_descriptor]
     lgdt   [gdt_descriptor]
     mov    eax, cr0
@@ -44,8 +45,6 @@ _start:
     jmp    gdt_codeseg:.protected_mode
 bits 32
 .protected_mode:
-    nop
-    nop
     mov    ax, gdt_dataseg
     mov    ds, ax
     mov    ss, ax
@@ -54,39 +53,65 @@ bits 32
     mov    gs, ax
     mov    ebp, 0x9fc00
     mov    esp, ebp
+.detect_cpuid:
+    pushfd
+    pop    eax
+    mov    ecx, eax
+    xor    eax, 1 << 21
+    push   eax
+    popfd
+    pushfd
+    pop    eax
+    push   ecx
+    popfd
+    xor    eax, ecx
+    jz     error.cpuid
 .detect_lm:
     mov    eax, 0x80000000
     cpuid
-    test   eax, 0x80000001
-    jne    error.cpuid
+    cmp    eax, 0x80000001
+    jb     error.long
     mov    eax, 0x80000001
     cpuid
     test   edx, 1 << 29
     jz     error.long
 .prepare_lm:
-    mov    bx, word [gdt_codeseg + 6]
-    mov    dx, word [gdt_dataseg + 6]
-    xor    bh, 00001111b           ;zero limit register in gdt
-    xor    dh, 00001111b           ;zero limit register in gdt
+    mov    eax, 10100000b
+    mov    cr4, eax
+    mov    edx, edi
+    mov    cr3, edx
+    mov    ecx, 0xC0000080
+    rdmsr
+    or     eax, 1 << 8
+    wrmsr
+    mov    eax, cr0
+    or     eax, 1 << 31
+    mov    cr0, eax
     xor    eax, eax
     mov    edi, [gdt]
-    mov    ecx, 6                  ;6 dwords * 4 bytes = 24 bytes
-    rep    stosd                   ;zero the entire 32 bit gdt
-    mov    word [gdt_codeseg + 6], bx
-    mov    word [gdt_dataseg + 6], dx
+    mov    ecx, 6
+    rep    stosd
+    mov    word [gdt.code + 6], 0x2f9a
+    mov    word [gdt.data + 6], 0x0092
     lgdt   [gdt_descriptor]
     jmp    gdt_codeseg:.long_mode
 bits 64
 .long_mode:
-    nop
-    nop
     mov    ax, gdt_dataseg
     mov    ds, ax
     mov    ss, ax
     mov    es, ax
     mov    fs, ax
     mov    gs, ax
+
+
+    mov    edi, 0xb8000
+    mov    rcx, 500
+    mov    rax, 0x1F201F201F201F20
+    rep    stosq
+halt:
     hlt
+    jmp    halt
 
 error:
 .cpuid:
@@ -94,15 +119,27 @@ error:
     jmp    print32
 .long:
     mov    esi, longerr
-    jmp    print32
 
+
+bits 32
 print32:
+    mov    edi, 0xb8000
+.loop:
+    lodsb
+    test   al, al
+    jz     .end
+    mov    byte [edi], al
+    add    edi, 2
+    jmp    .loop
+.end:
     hlt
+
 
 %include "gdt.asm"
 
-cpuiderr db "CPUID is not supported, cannot use 64 bit mode", 0x0
-longerr  db "CPU does not support 64 bit mode, cannot continue", 0x0
+
+cpuiderr db "HALT: CPUID is not supported", 0x0
+longerr  db "HALT: CPU does not support 64 bit mode", 0x0
 
 section .vbr_signature start=0x1fe vstart=0x7dfe
 dw 0xaa55

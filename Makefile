@@ -1,29 +1,29 @@
+#name of disk
+DISK_NAME:="test-disk.bin"
+#size of disk in megabytes
+DISK_SIZE:=1000
+
 DD=dd
-NASM=nasm
-PARTED=parted -s
-MKFAT=mkfs.fat
-QEMU=qemu-system-x86_64
+PARTED=parted
+MCOPY=mcopy
+MKFAT=mkfs.fat -F 32
 
-default: mbr
+ESP_OFFSET=$(parted --script ${DISK_NAME} unit s p | awk '/ESP/ { print $$2 }' | sed 's/.$$//')
 
-clean:
-	rm -f bootloader.bin
+default: disk
 
-mbr: stage1.asm
-	$(NASM) -f bin stage1.asm -o bootloader.bin
+clean: ${DISK_NAME}
+	rm -f ${DISK_NAME}
 
-vbr: stage2.asm
-	$(NASM) -f bin stage2.asm -o fat32vbr.bin
+disk:
+	$(DD) if=/dev/zero of=${DISK_NAME} bs=1024K count=${DISK_SIZE}
+	$(PARTED) --script ${DISK_NAME} \
+		--align optimal \
+		mklabel gpt \
+		mkpart ESP fat32 0% 500M \
+		mkpart system fat32 500M 100%
+	MOUNTED_NAME=$(sudo losetup -Pf --show ${DISK_NAME})
+	sudo $(MKFAT) ${MOUNTED_NAME}p1
 
-test: mbr vbr
-	$(DD) if=/dev/zero of=fat32-testdrive.bin bs=1024 count=1024
-	$(PARTED) fat32-testdrive.bin mklabel msdos
-	$(PARTED) fat32-testdrive.bin mkpart primary fat32 0% 100%
-	$(PARTED) fat32-testdrive.bin set 1 boot on
-	$(MKFAT) -F 32 fat32-testdrive.bin
-	$(DD) if=bootloader.bin of=fat32-test
-	$(QEMU)
 
-testdrive: mbr bootloader.bin
-	$(DD) if=bootloader.bin of=$(DRIVE) bs=1 count=436 conv=notrunc
-	$(QEMU) -drive format=raw,file=$(DRIVE)
+
